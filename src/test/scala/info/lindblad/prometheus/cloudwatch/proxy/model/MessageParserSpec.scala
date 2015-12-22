@@ -1,8 +1,18 @@
 package info.lindblad.prometheus.cloudwatch.proxy.model
 
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalacheck.{Arbitrary, Gen}
+import org.scalatest.prop.PropertyChecks
+import org.scalatest.{Matchers, PropSpec}
 
-class MessageParserSpec extends FlatSpec with Matchers {
+class MessageParserSpec extends PropSpec with PropertyChecks with Matchers {
+
+  implicit override val generatorDrivenConfig = PropertyCheckConfig(minSuccessful = 1000)
+
+  val validChars = Gen.listOf(Gen.choose(35.toChar, 126.toChar)).map(_.mkString).suchThat(_.length > 0)
+  val doubleValues = Arbitrary.arbitrary[Double]
+  val statisticsSet = Gen.nonEmptyListOf(doubleValues)
+  val statisticsSets = Gen.nonEmptyListOf(statisticsSet)
+  val nbrOfMetrics = Gen.choose(1, 20)
 
   val r = scala.util.Random
 
@@ -28,84 +38,67 @@ class MessageParserSpec extends FlatSpec with Matchers {
     (s"MetricData.member.${index}.Unit", unit)
   )
 
-  def metric(index: Integer = 1) = metricFields(
-    index,
-    randomString,
-    r.nextDouble().toString,
-    randomString
-  )
-
-  def statistics(index: Integer = 1) = statisticsSetFields(
-    index,
-    randomString,
-    r.nextDouble().toString,
-    r.nextDouble().toString,
-    r.nextDouble().toString,
-    r.nextDouble().toString,
-    randomString
-  )
-
-  "MessageParser" should "parse the maximum number of metrics (20)" in {
-    val data = alwaysPresentFields ++ (1 to 20).flatMap(metric(_)).toSeq
-
-    val metrics = MessageParser.parse(data)
-
-    metrics.length should be(20)
+  property("Parse metrics") {
+    forAll(validChars, doubleValues, validChars, nbrOfMetrics) { (name: String, value: Double, unit: String, size: Int) =>
+      val data = alwaysPresentFields ++ (1 to size).flatMap(metricFields(_, name, value.toString, unit)).toSeq
+      val metrics = MessageParser.parse(data)
+      metrics.length should be(size)
+    }
   }
 
-  "MessageParser" should "parse single metric correctly" in {
-    val data = alwaysPresentFields ++ Seq(
-      ("Namespace", "MyNamespace"),
-      ("MetricData.member.1.MetricName", "Exceptions"),
-      ("MetricData.member.1.Value", "100"),
-      ("MetricData.member.1.Unit", "Count")
-    )
-
-    val metrics = MessageParser.parse(data)
-
-    metrics.length should be(1)
-    metrics(0).isInstanceOf[Count] should be(true)
-    val count = metrics(0).asInstanceOf[Count]
-    count.name should be("Exceptions")
-    count.value should be(100.0)
-    count.unit should be("Count")
+  property("Parse statistics sets") {
+    forAll(validChars, statisticsSets, validChars, nbrOfMetrics) { (name: String, measurements: Seq[Seq[Double]], unit: String, size: Int) =>
+      measurements.foreach(measurement => {
+        val sampleCount = measurement.size.toString
+        val sum = measurement.sum.toString
+        val minimum = measurement.min.toString
+        val maximum = measurement.max.toString
+        val data = alwaysPresentFields ++ (1 to size).flatMap(statisticsSetFields(_, name, sampleCount, sum, minimum, maximum, unit)).toSeq
+        val metrics = MessageParser.parse(data)
+        metrics.length should be(size)
+      })
+    }
   }
 
-  "MessageParser" should "parse single statistics set correctly" in {
-    val data = alwaysPresentFields ++ Seq(
-      ("Namespace", "MyNamespace"),
-      ("MetricData.member.3.MetricName", "Latency"),
-      ("MetricData.member.3.StatisticValues.SampleCount", "20.0"),
-      ("MetricData.member.3.StatisticValues.Sum", "700.0"),
-      ("MetricData.member.3.StatisticValues.Minimum", "10.0"),
-      ("MetricData.member.3.StatisticValues.Maximum", "1000.0"),
-      ("MetricData.member.3.Unit", "milliseconds")
-    )
-
-    val metrics = MessageParser.parse(data)
-
-    metrics.length should be(1)
-    metrics(0).isInstanceOf[StatisticsSet] should be(true)
-    val statisticsSet = metrics(0).asInstanceOf[StatisticsSet]
-    statisticsSet.name should be("Latency")
-    statisticsSet.sampleCount should be(20.0)
-    statisticsSet.sum should be(700.0)
-    statisticsSet.minimum should be(10.0)
-    statisticsSet.maximum should be(1000.0)
-    statisticsSet.unit should be("milliseconds")
+  property("Parse single metric") {
+    forAll(validChars, doubleValues, validChars) { (name: String, value: Double, unit: String) =>
+      val data = alwaysPresentFields ++ metricFields(1, name, value.toString, unit)
+      val metrics = MessageParser.parse(data)
+      metrics.length should be(1)
+      metrics(0).isInstanceOf[Count] should be(true)
+      val count = metrics(0).asInstanceOf[Count]
+      count.name should be(name)
+      count.value should be(value)
+      count.unit should be(unit)
+    }
   }
 
-  "MessageParser" should "not parse metric without name" in {
-    val data = alwaysPresentFields ++ Seq(
-      ("MetricData.member.1.Value", "100"),
-      ("MetricData.member.1.Unit", "Count")
-    )
-
-    val metrics = MessageParser.parse(data)
-
-    metrics.length should be(0)
+  property("Parse single statistics set") {
+    forAll(validChars, statisticsSet, validChars) { (name: String, measurement: Seq[Double], unit: String) =>
+      val sampleCount = measurement.size
+      val sum = measurement.sum
+      val minimum = measurement.min
+      val maximum = measurement.max
+      val data = alwaysPresentFields ++ statisticsSetFields(
+        1,
+        name,
+        sampleCount.toString,
+        sum.toString,
+        minimum.toString,
+        maximum.toString,
+        unit
+      )
+      val metrics = MessageParser.parse(data)
+      metrics.length should be(1)
+      metrics(0).isInstanceOf[StatisticsSet] should be(true)
+      val statisticsSet = metrics(0).asInstanceOf[StatisticsSet]
+      statisticsSet.name should be(name)
+      statisticsSet.sampleCount should be(sampleCount)
+      statisticsSet.sum should be(sum)
+      statisticsSet.minimum should be(minimum)
+      statisticsSet.maximum should be(maximum)
+      statisticsSet.unit should be(unit)
+    }
   }
-
-
 
 }
