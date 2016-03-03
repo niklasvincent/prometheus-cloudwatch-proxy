@@ -1,5 +1,6 @@
 package info.lindblad.prometheus.cloudwatch.proxy.directives
 
+import info.lindblad.prometheus.cloudwatch.proxy.Main
 import info.lindblad.prometheus.cloudwatch.proxy.model.MessageParser
 import info.lindblad.prometheus.cloudwatch.proxy.util.Logging
 import spray.routing._
