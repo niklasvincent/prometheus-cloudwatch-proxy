@@ -2,11 +2,18 @@ package info.lindblad.prometheus.cloudwatch.proxy.model
 
 import scala.collection.mutable
 
+import io.prometheus.client.{Summary, Counter, CollectorRegistry}
+
 
 class MetricStore {
 
-  private lazy val counters = new mutable.HashMap[String, Double]().withDefaultValue(0)
+  lazy val prometheusRegistry = new CollectorRegistry()
 
-  def incrementCounter(name: String, increment: Double) = counters.update(name, counters(name) + increment)
+  private lazy val counters = new mutable.HashMap[String, Counter]
+
+  private lazy val summaries = new mutable.HashMap[String, Summary]
+
+  Counter.build().name("requests_total").help("Total requests.").register(prometheusRegistry)
+
 
 }

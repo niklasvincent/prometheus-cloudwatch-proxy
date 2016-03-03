@@ -14,7 +14,6 @@ class MetricsActor extends Actor with Logging {
         m match {
           case count: Count => {
             logger.debug(s"Incrementing counter ${count.name} by ${count.value}")
-            metricStore.incrementCounter(count.name, count.value)
           }
           case statisticsSet: StatisticsSet => logger.debug("Got statistics set")
         }

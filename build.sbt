@@ -20,7 +20,8 @@ libraryDependencies ++= {
     "org.specs2" %%  "specs2-core" % "2.4.17" % "test",
     "org.scalatest" %%  "scalatest" % "2.2.1" % "test",
     "org.scalacheck" %%  "scalacheck" % "1.12.5" % "test",
-    "ch.qos.logback" % "logback-classic" % "1.1.2"
+    "ch.qos.logback" % "logback-classic" % "1.1.2",
+    "io.prometheus" % "simpleclient" % "0.0.13"
   )
 }
 
