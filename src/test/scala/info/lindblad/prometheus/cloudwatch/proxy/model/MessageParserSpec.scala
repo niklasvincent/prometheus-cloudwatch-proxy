@@ -41,7 +41,7 @@ class MessageParserSpec extends PropSpec with PropertyChecks with Matchers {
   property("Parse metrics") {
     forAll(validChars, doubleValues, validChars, nbrOfMetrics) { (name: String, value: Double, unit: String, size: Int) =>
       val data = alwaysPresentFields ++ (1 to size).flatMap(metricFields(_, name, value.toString, unit)).toSeq
-      val metrics = MessageParser.parse(data)
+      val metrics = CloudWatchMessageParser.parse(data)
       metrics.length should be(size)
     }
   }
@@ -54,7 +54,7 @@ class MessageParserSpec extends PropSpec with PropertyChecks with Matchers {
         val minimum = measurement.min.toString
         val maximum = measurement.max.toString
         val data = alwaysPresentFields ++ (1 to size).flatMap(statisticsSetFields(_, name, sampleCount, sum, minimum, maximum, unit)).toSeq
-        val metrics = MessageParser.parse(data)
+        val metrics = CloudWatchMessageParser.parse(data)
         metrics.length should be(size)
       })
     }
@@ -63,7 +63,7 @@ class MessageParserSpec extends PropSpec with PropertyChecks with Matchers {
   property("Parse single metric") {
     forAll(validChars, doubleValues, validChars) { (name: String, value: Double, unit: String) =>
       val data = alwaysPresentFields ++ metricFields(1, name, value.toString, unit)
-      val metrics = MessageParser.parse(data)
+      val metrics = CloudWatchMessageParser.parse(data)
       metrics.length should be(1)
       metrics(0).isInstanceOf[Count] should be(true)
       val count = metrics(0).asInstanceOf[Count]
@@ -88,7 +88,7 @@ class MessageParserSpec extends PropSpec with PropertyChecks with Matchers {
         maximum.toString,
         unit
       )
-      val metrics = MessageParser.parse(data)
+      val metrics = CloudWatchMessageParser.parse(data)
       metrics.length should be(1)
       metrics(0).isInstanceOf[StatisticsSet] should be(true)
       val statisticsSet = metrics(0).asInstanceOf[StatisticsSet]

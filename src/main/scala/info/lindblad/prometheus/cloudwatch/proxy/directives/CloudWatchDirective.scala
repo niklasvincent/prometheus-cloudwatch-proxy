@@ -1,22 +1,24 @@
 package info.lindblad.prometheus.cloudwatch.proxy.directives
 
-import info.lindblad.prometheus.cloudwatch.proxy.model.MessageParser
+import akka.actor.ActorRef
+import info.lindblad.prometheus.cloudwatch.proxy.model.CloudWatchMessageParser
 import info.lindblad.prometheus.cloudwatch.proxy.util.Logging
 import spray.routing._
 
-object CloudWatchDirective extends Directives with Logging {
+class CloudWatchDirective(metricsActor: ActorRef) extends Directives with Logging {
+
+  def uuid = java.util.UUID.randomUUID.toString
 
   val route: Route =
     path("cloudwatch" /) {
       post {
         entity(as[spray.http.FormData]) { data =>
-          val metrics = MessageParser.parse(data.fields)
-          println(data.fields)
-          println(metrics)
+          val metrics = CloudWatchMessageParser.parse(data.fields)
+          metricsActor ! metrics
           complete {
-            <PutMetricDataResponse xmlns="http://127.0.0.1:8080/doc/2010-08-01/">
+            <PutMetricDataResponse>
               <ResponseMetadata>
-                <RequestId>e16fc4d3-9a04-11e0-9362-093a1cae5385</RequestId>
+                <RequestId>uuid</RequestId>
               </ResponseMetadata>
             </PutMetricDataResponse>
           }

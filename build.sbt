@@ -11,6 +11,7 @@ resolvers += "spray repo" at "http://repo.spray.io"
 libraryDependencies ++= {
   val akkaV = "2.3.9"
   val sprayV = "1.3.3"
+  val prometheusV = "0.0.13"
   Seq(
     "io.spray" %% "spray-can" % sprayV,
     "io.spray" %% "spray-routing" % sprayV,
@@ -20,7 +21,8 @@ libraryDependencies ++= {
     "org.specs2" %%  "specs2-core" % "2.4.17" % "test",
     "org.scalatest" %%  "scalatest" % "2.2.1" % "test",
     "org.scalacheck" %%  "scalacheck" % "1.12.5" % "test",
-    "ch.qos.logback" % "logback-classic" % "1.1.2"
+    "ch.qos.logback" % "logback-classic" % "1.1.2",
+    "io.prometheus" % "simpleclient_servlet" % prometheusV
   )
 }
 
