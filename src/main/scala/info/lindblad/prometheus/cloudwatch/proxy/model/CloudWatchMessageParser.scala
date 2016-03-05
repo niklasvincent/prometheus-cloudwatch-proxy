@@ -47,7 +47,7 @@ object CloudWatchMessageParser extends Logging {
     groupBySubstring(fields.filterKeys(_.startsWith(metricDimensionMemberPrefix)), metricDimensionMemberOffset).flatMap(d => for {
       name <- d._2.get("Name")
       value <- d._2.get("Value")
-    } yield Dimension(name, value)).toSeq
+    } yield Dimension(name, value)).toSeq.sortWith(_.name < _.name)
   }
 
   def parseDouble(string: Option[String]): Option[Double] = Try(string.getOrElse("0").toDouble).toOption

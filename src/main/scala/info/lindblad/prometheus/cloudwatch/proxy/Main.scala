@@ -1,10 +1,10 @@
 package info.lindblad.prometheus.cloudwatch.proxy
 
-import akka.actor.{ActorSystem, Props}
+import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.io.IO
 import akka.pattern.ask
 import akka.util.Timeout
-import info.lindblad.prometheus.cloudwatch.proxy.actor.{MetricsActor, PrometheusCloudwatchProxyActor}
+import info.lindblad.prometheus.cloudwatch.proxy.actor.{MetricsActor, HttpRequestActor}
 import info.lindblad.prometheus.cloudwatch.proxy.conf.Configuration
 import spray.can.Http
 
@@ -12,11 +12,13 @@ import scala.concurrent.duration._
 
 object Main extends App {
 
-  implicit val system = ActorSystem("prometheus-cloudwatch-proxy")
+  val metricsSystem = ActorSystem("metrics-sysytem")
 
-  val serviceActor = system.actorOf(Props[PrometheusCloudwatchProxyActor])
+  implicit val httpRequestSystem = ActorSystem("http-request-system")
 
-  val metricsActor = system.actorOf(Props[MetricsActor], name = "MetricsActor")
+  val metricsActor: ActorRef = metricsSystem.actorOf(Props[MetricsActor], name = "MetricsActor")
+
+  val serviceActor: ActorRef = httpRequestSystem.actorOf(Props(new HttpRequestActor(metricsActor)))
 
   implicit val timeout = Timeout(5.seconds)
 
