@@ -2,13 +2,12 @@ package info.lindblad.prometheus.cloudwatch.proxy.model
 
 import java.util
 
-import info.lindblad.prometheus.cloudwatch.proxy.model.Count
 import info.lindblad.prometheus.cloudwatch.proxy.util.Hash
 import io.prometheus.client.Collector.MetricFamilySamples
 
 import scala.collection.mutable
 
-import io.prometheus.client.{Summary, Counter, CollectorRegistry}
+import io.prometheus.client.{Histogram, Counter, CollectorRegistry}
 
 trait Metrics {
 
@@ -24,7 +23,7 @@ class MetricStore extends Metrics {
 
   private lazy val counters = new mutable.HashMap[String, Counter]
 
-  private lazy val summaries = new mutable.HashMap[String, Summary]
+  private lazy val histograms = new mutable.HashMap[String, Histogram]
 
   def add(count: Count) = {
     val hash = Hash.sha1(count.toString)
@@ -41,6 +40,18 @@ class MetricStore extends Metrics {
 
   def add(statisticsSet: StatisticsSet) = {
     val hash = Hash.sha1(statisticsSet.toString)
+    val name = s"${statisticsSet.namespace}:${statisticsSet.name}"
+    if (statisticsSet.sampleCount > 0) {
+      val average: Double = statisticsSet.sum / statisticsSet.sampleCount
+      histograms.getOrElseUpdate(
+        hash,
+        Histogram.build()
+          .name(name)
+          .help(name)
+          .labelNames(statisticsSet.dimensions.map(_.name): _*)
+          .register(prometheusRegistry)
+      ).labels(statisticsSet.dimensions.map(_.value): _*).observe(average)
+    }
   }
 
   def expose(): util.Enumeration[MetricFamilySamples] = prometheusRegistry.metricFamilySamples()
