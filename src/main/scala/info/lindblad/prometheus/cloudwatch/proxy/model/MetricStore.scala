@@ -7,7 +7,7 @@ import io.prometheus.client.Collector.MetricFamilySamples
 
 import scala.collection.mutable
 
-import io.prometheus.client.{Histogram, Counter, CollectorRegistry}
+import io.prometheus.client._
 
 trait Metrics {
 
@@ -23,7 +23,7 @@ class MetricStore extends Metrics {
 
   private lazy val counters = new mutable.HashMap[String, Counter]
 
-  private lazy val histograms = new mutable.HashMap[String, Histogram]
+  private lazy val gauges = new mutable.HashMap[String, Gauge]
 
   def add(count: Count) = {
     val hash = Hash.sha1(count.toString)
@@ -43,14 +43,14 @@ class MetricStore extends Metrics {
     val name = s"${statisticsSet.namespace}:${statisticsSet.name}"
     if (statisticsSet.sampleCount > 0) {
       val average: Double = statisticsSet.sum / statisticsSet.sampleCount
-      histograms.getOrElseUpdate(
+      gauges.getOrElseUpdate(
         hash,
-        Histogram.build()
+        Gauge.build()
           .name(name)
           .help(name)
           .labelNames(statisticsSet.dimensions.map(_.name): _*)
           .register(prometheusRegistry)
-      ).labels(statisticsSet.dimensions.map(_.value): _*).observe(average)
+      ).labels(statisticsSet.dimensions.map(_.value): _*).set(average)
     }
   }
 
