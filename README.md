@@ -18,3 +18,10 @@ Understands the `PutMetricData` action in the [Amazon Web Services CloudWatch AP
     |     B      |           |
     |            +-----------+
     +------------+
+
+## Configure AWS SDK
+
+```
+val client = new AmazonCloudWatchAsyncClient()
+client.setEndpoint("http://127.0.0.1:8080/cloudwatch")
+```
